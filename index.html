@@ -168,13 +168,17 @@ function render(){
 const REPO_OWNER = "QWE123456-LANG";
 const REPO_NAME  = "medical-intel-data";
 const REPO_BRANCH= "main";
+/* 说明：raw.githubusercontent.com 在部分内网被阻断，jsDelivr 对 .md/.html 会 301 到 raw。
+   故首选 GitHub API（返回 vnd.github.raw 原文，CORS 为 *，各网络均可用），再退 CDN，最后退本地。 */
+const API_SRC = "https://api.github.com/repos/"+REPO_OWNER+"/"+REPO_NAME+"/contents/data.json?ref="+REPO_BRANCH;
 const REMOTE_SOURCES = [
+  API_SRC,
   "https://cdn.jsdelivr.net/gh/"+REPO_OWNER+"/"+REPO_NAME+"@"+REPO_BRANCH+"/data.json",
   "https://fastly.jsdelivr.net/gh/"+REPO_OWNER+"/"+REPO_NAME+"@"+REPO_BRANCH+"/data.json",
   "https://raw.githubusercontent.com/"+REPO_OWNER+"/"+REPO_NAME+"/"+REPO_BRANCH+"/data.json"
 ];
 function fetchJSON(url){
-  return fetch(url,{cache:"no-store",mode:"cors",headers:{"Accept":"application/json"}}).then(r=>{
+  return fetch(url,{cache:"no-store",mode:"cors",headers:{"Accept":"application/vnd.github.raw, application/json"}}).then(r=>{
     if(!r.ok) throw new Error("HTTP "+r.status);
     return r.json();
   });
