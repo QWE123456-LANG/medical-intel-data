@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>基层医疗行业情报系统</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f4f7fb;color:#1f2d3d;line-height:1.7}
+.topbar{background:linear-gradient(120deg,#0f6fd6,#13b3a6);color:#fff;padding:20px 28px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.topbar h1{font-size:22px;font-weight:700;letter-spacing:.5px}
+.topbar .sub{font-size:13px;opacity:.92;margin-top:4px}
+.layout{display:flex;min-height:calc(100vh - 70px)}
+.sidebar{width:220px;flex:0 0 220px;background:#0e2740;color:#cdd9e5;padding:18px 0;overflow-y:auto}
+.nav-item{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:none;color:#cdd9e5;text-align:left;padding:13px 22px;font-size:15px;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+.nav-item:hover{background:#16324f;color:#fff}
+.nav-item.active{background:#16324f;color:#fff;border-left-color:#13b3a6}
+.badge{background:#13b3a6;color:#04222a;font-size:12px;font-weight:700;border-radius:10px;padding:1px 8px}
+.content{flex:1;padding:28px 36px;overflow-y:auto}
+.panel{display:none;animation:fade .25s ease}
+.panel.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.snapshot-banner{background:linear-gradient(120deg,#e8f6ff,#e6fff7);border:1px solid #bfe6ff;border-radius:10px;padding:12px 16px;font-size:14px;margin-bottom:18px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:#fff;border:1px solid #e3ebf3;border-radius:12px;padding:18px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.stat .num{font-size:28px;font-weight:800;color:#0f6fd6}
+.stat .lbl{font-size:13px;color:#5a6b7b;margin-top:4px}
+.focus-card{background:#fff;border:1px solid #e3ebf3;border-radius:12px;padding:20px 22px;margin:14px 0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.focus-body{max-height:none;overflow:visible}
+.lead{background:#fff;border-left:4px solid #0f6fd6;padding:14px 18px;border-radius:8px;margin:14px 0;font-size:15px}
+.hint{color:#7a8896;font-size:13px;margin-top:8px}
+.archive-head{background:#fff;border:1px solid #e3ebf3;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.date-sel{padding:6px 10px;border:1px solid #c9d6e3;border-radius:8px;font-size:14px;background:#fff;color:#1f2d3d}
+.entry{display:none}.entry.active{display:block;animation:fade .2s ease}
+h2{font-size:21px;color:#0e2740;margin:18px 0 10px;border-bottom:2px solid #e3ebf3;padding-bottom:6px}
+h2.sec{font-size:18px;color:#0f6fd6;margin:20px 0 8px;border-left:4px solid #13b3a6;padding-left:10px;border-bottom:none}
+h3{font-size:16px;color:#13243a;margin:16px 0 6px}
+h3.entry-title{font-size:16px;color:#0f4fa0;margin:16px 0 6px}
+h4{font-size:15px;color:#13b3a6;margin:14px 0 4px}
+p{margin:8px 0;font-size:14.5px}
+p b{color:#0e2740}
+ul,ol{margin:8px 0 8px 22px;font-size:14.5px}
+li{margin:4px 0}
+a{color:#0f6fd6;text-decoration:none}a:hover{text-decoration:underline}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+th,td{border:1px solid #e3ebf3;padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#eef4fb;color:#0e2740;font-weight:700}
+tr:nth-child(even) td{background:#fafcfe}
+blockquote{background:#f0f7ff;border-left:4px solid #13b3a6;padding:10px 16px;margin:12px 0;color:#3a4a5a;font-size:14px;border-radius:6px}
+code{background:#eef1f5;padding:1px 6px;border-radius:4px;font-size:13px}
+hr{border:none;border-top:1px solid #e3ebf3;margin:18px 0}
+.footer{text-align:center;color:#9aa7b4;font-size:12px;padding:18px}
+.loading{text-align:center;color:#7a8896;padding:60px;font-size:15px}
+@media(max-width:720px){.layout{flex-direction:column}.sidebar{width:100%;display:flex;overflow-x:auto}.nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap}.content{padding:18px}}
+</style>
+</head>
+<body>
+<div class="topbar"><h1>基层医疗行业情报系统</h1><div class="sub" id="topsub">持续更新的行业信息库</div></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="content" id="content"><div class="loading">正在加载情报数据…</div></main>
+</div>
+<div class="footer">基层医疗行业情报系统 · 云端定时自动生成并发布 · 仅供行业研究参考</div>
+
+<script>
+/* ---------- Markdown 渲染（与生成端一致） ---------- */
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function inline(s){
+  s=String(s);
+  s=s.replace(/`([^`]+)`/g,(m,c)=>'<code>'+c+'</code>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/\*([^*]+)\*/g,'<em>$1</em>');
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,(m,t,u)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>');
+  s=s.replace(/(https?:\/\/[^\s<）)'》]*)/g,(m,u)=>'<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>');
+  return s;
+}
+function md2html(md){
+  const lines=String(md).replace(/\r\n/g,"\n").split("\n");
+  let html="";let i=0;
+  while(i<lines.length){
+    const line=lines[i];
+    if(/^\s*$/.test(line)){i++;continue;}
+    if(/^\s*([-*_])\1{2,}\s*$/.test(line)){html+="<hr>";i++;continue;}
+    const h=line.match(/^(#{1,6})\s+(.*)$/);
+    if(h){const l=h[1].length;html+="<h"+l+">"+inline(esc(h[2]))+"</h"+l+">";i++;continue;}
+    if(/^\s*>\s?/.test(line)){const buf=[];while(i<lines.length&&/^\s*>\s?/.test(lines[i])){buf.push(lines[i].replace(/^\s*>\s?/,""));i++;}html+="<blockquote>"+inline(esc(buf.join("<br>")))+"</blockquote>";continue;}
+    if(/^\s*\|.*\|\s*$/.test(line)){const rows=[];while(i<lines.length&&/^\s*\|.*\|\s*$/.test(lines[i])){rows.push(lines[i].trim());i++;}const hdr=rows[0].split("|").slice(1,-1).map(c=>c.trim());const body=rows.slice(2).map(r=>r.split("|").slice(1,-1).map(c=>c.trim()));html+="<table><thead><tr>"+hdr.map(c=>"<th>"+inline(esc(c))+"</th>").join("")+"</tr></thead><tbody>";for(const r of body)html+="<tr>"+r.map(c=>"<td>"+inline(esc(c))+"</td>").join("")+"</tr>";html+="</tbody></table>";continue;}
+    if(/^\s*([-*])\s+/.test(line)||/^\s*\d+\.\s+/.test(line)){const ordered=/^\s*\d+\.\s+/.test(line);const re=ordered?/^\s*\d+\.\s+(.*)$/:/^\s*[-*]\s+(.*)$/;const items=[];while(i<lines.length&&re.test(lines[i])){items.push(lines[i].match(re)[1]);i++;}const tag=ordered?"ol":"ul";html+="<"+tag+">"+items.map(it=>"<li>"+inline(esc(it))+"</li>").join("")+"</"+tag+">";continue;}
+    const buf=[];while(i<lines.length&&!/^\s*$/.test(lines[i])&&!/^(#{1,6})\s+/.test(lines[i])&&!/^\s*>\s?/.test(lines[i])&&!/^\s*[-*]\s+/.test(lines[i])&&!/^\s*\d+\.\s+/.test(lines[i])&&!/^\s*\|.*\|\s*$/.test(lines[i])&&!/^\s*([-*_])\1{2,}\s*$/.test(lines[i])){buf.push(lines[i]);i++;}html+="<p>"+inline(esc(buf.join(" ")))+"</p>";
+  }
+  return html;
+}
+function renderEntry(e){
+  let h='<h3 class="entry-title">'+inline(esc(e.title||""))+'</h3>';
+  for(const ln of (e.lines||[])){
+    let s=ln.replace(/^[-*]\s+/,"");
+    const m=s.match(/^([^：:]{1,14}[：:])\s*([\s\S]*)$/);
+    if(m)h+="<p><b>"+inline(esc(m[1]))+"</b> "+inline(esc(m[2]))+"</p>";
+    else h+="<p>"+inline(esc(s))+"</p>";
+  }
+  return h;
+}
+function renderCategory(cat){
+  let html="";let cur=null;
+  for(const e of (cat.entries||[])){
+    if(e.section&&e.section!==cur){html+='<h2 class="sec">'+inline(esc(e.section))+'</h2>';cur=e.section;}
+    html+=renderEntry(e);
+  }
+  if(cat.table&&cat.table.header&&cat.table.rows){
+    html+='<h2 class="sec">潜在合作机会（待跟进）</h2><table><thead><tr>'+cat.table.header.map(c=>"<th>"+inline(esc(c))+"</th>").join("")+"</tr></thead><tbody>";
+    for(const r of cat.table.rows)html+="<tr>"+r.map(c=>"<td>"+inline(esc(c))+"</td>").join("")+"</tr>";
+    html+="</tbody></table>";
+  }
+  return html;
+}
+
+/* ---------- 渲染应用 ---------- */
+let DATA=null;
+function render(){
+  const d=DATA;
+  const cats=[
+    {id:"policy",o:d.categories.policy},
+    {id:"ai",o:d.categories.ai},
+    {id:"vendor",o:d.categories.vendor},
+    {id:"opportunity",o:d.categories.opportunity},
+  ];
+  const counts={};cats.forEach(c=>counts[c.id]=(c.o.entries||[]).length);
+  const latestDaily=d.daily[0]||{date:"—",md:""};
+  const latestWeekly=d.weekly[0]||{weekId:"—",label:"暂无每周报告",md:""};
+
+  const dailyOptions=d.daily.map((x,i)=>'<option value="'+x.date+'"'+(i===0?" selected":"")+">"+x.date+(i===0?"（最新）":"")+"</option>").join("");
+  const dailyEntries=d.daily.map((x,i)=>'<div class="entry'+(i===0?" active":"")+'" data-date="'+x.date+'">'+md2html(x.md||"")+"</div>").join("");
+  const dailyPanel='<div class="archive-head"><span class="badge">'+d.daily.length+' 份</span><label for="dailySel">切换日期：</label><select id="dailySel" class="date-sel">'+dailyOptions+'</select><span class="hint">默认显示最新一份，历史全部保留</span></div><div id="dailyWrap">'+dailyEntries+'</div>';
+
+  const weeklyOptions=d.weekly.map((x,i)=>'<option value="'+x.weekId+'"'+(i===0?" selected":"")+">"+x.weekId+(i===0?"（最新）":"")+"</option>").join("");
+  const weeklyEntries=d.weekly.map((x,i)=>'<div class="entry'+(i===0?" active":"")+'" data-week="'+x.weekId+'">'+md2html(x.md||"")+"</div>").join("");
+  const weeklyPanel='<div class="archive-head"><span class="badge">'+d.weekly.length+' 份</span><label for="weeklySel">切换周次：</label><select id="weeklySel" class="date-sel">'+weeklyOptions+'</select><span class="hint">默认显示最新一周，历史全部保留</span></div><div id="weeklyWrap">'+weeklyEntries+'</div>';
+
+  const stats='<div class="stats">'+cats.map(c=>'<div class="stat"><div class="num">'+counts[c.id]+'</div><div class="lbl">'+c.o.title+'</div></div>').join("")+'<div class="stat"><div class="num">'+d.daily.length+'</div><div class="lbl">每日摘要（份）</div></div><div class="stat"><div class="num">'+d.weekly.length+'</div><div class="lbl">每周报告（份）</div></div></div>';
+
+  const overview='<div class="snapshot-banner">🟢 数据快照 · 最新每日摘要 <b>'+latestDaily.date+'</b> · 最新每周清单 <b>'+latestWeekly.weekId+'</b> · 每日 / 每周自动更新并发布（云端定时，电脑关机也能运行）</div>'+stats+
+    '<div class="focus-card"><h2>📌 今日焦点（最新每日摘要 · '+latestDaily.date+'）</h2><div class="focus-body">'+md2html(latestDaily.md||"")+'</div><p class="hint">↑ 左侧「每日摘要」可查看全部历史日期</p></div>'+
+    '<div class="focus-card"><h2>📑 本周清单（最新每周报告 · '+latestWeekly.weekId+'）</h2><div class="focus-body">'+md2html(latestWeekly.md||"")+'</div><p class="hint">↑ 左侧「每周报告」可查看全部历史周报</p></div>'+
+    '<p class="lead">本系统持续汇总 <b>国家及地方医疗、养老、基层卫生政策</b>，<b>AI 医疗与数字化应用</b>，<b>医疗器械与软件服务商动态</b>，以及 <b>重点地区行业合作机会</b>。</p>'+
+    '<p class="hint">本页为自动发布的静态快照，分享链接长期不变；每次更新后重新发布即同步最新当日 / 本周数据，历史全部保留。</p>';
+
+  document.getElementById("topsub").textContent="持续更新的行业信息库 · 数据截至 "+latestDaily.date+" / "+latestWeekly.weekId;
+  document.getElementById("sidebar").innerHTML=[
+    '<button class="nav-item active" data-target="overview">概览 / 今日本周 <span class="badge">●</span></button>',
+    ...cats.map(c=>'<button class="nav-item" data-target="'+c.id+'">'+c.o.title+' <span class="badge">'+counts[c.id]+'</span></button>'),
+    '<button class="nav-item" data-target="daily">每日摘要 <span class="badge">'+d.daily.length+'</span></button>',
+    '<button class="nav-item" data-target="weekly">每周报告 <span class="badge">'+d.weekly.length+'</span></button>',
+  ].join("");
+  document.getElementById("content").innerHTML=[
+    '<section class="panel active" id="panel-overview">'+overview+'</section>',
+    ...cats.map(c=>'<section class="panel" id="panel-'+c.id+'">'+renderCategory(c.o)+'</section>'),
+    '<section class="panel" id="panel-daily">'+dailyPanel+'</section>',
+    '<section class="panel" id="panel-weekly">'+weeklyPanel+'</section>',
+  ].join("");
+
+  const items=document.querySelectorAll(".nav-item");
+  function showPanel(t){items.forEach(x=>x.classList.remove("active"));document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));const nav=[].filter.call(items,b=>b.dataset.target===t)[0];if(nav)nav.classList.add("active");const el=document.getElementById("panel-"+t);if(el)el.classList.add("active");window.scrollTo(0,0);}
+  items.forEach(b=>b.addEventListener("click",()=>showPanel(b.dataset.target)));
+  const ds=document.getElementById("dailySel");if(ds)ds.addEventListener("change",()=>document.querySelectorAll("#dailyWrap .entry").forEach(e=>e.classList.toggle("active",e.dataset.date===ds.value)));
+  const ws=document.getElementById("weeklySel");if(ws)ws.addEventListener("change",()=>document.querySelectorAll("#weeklyWrap .entry").forEach(e=>e.classList.toggle("active",e.dataset.week===ws.value)));
+}
+/* ---------- 数据来源：远程优先（云端每日维护 GitHub，链接永远不变），逐级回退 ---------- */
+const REPO_OWNER = "QWE123456-LANG";
+const REPO_NAME  = "medical-intel-data";
+const REPO_BRANCH= "main";
+const REMOTE_SOURCES = [
+  "https://cdn.jsdelivr.net/gh/"+REPO_OWNER+"/"+REPO_NAME+"@"+REPO_BRANCH+"/data.json",
+  "https://fastly.jsdelivr.net/gh/"+REPO_OWNER+"/"+REPO_NAME+"@"+REPO_BRANCH+"/data.json",
+  "https://raw.githubusercontent.com/"+REPO_OWNER+"/"+REPO_NAME+"/"+REPO_BRANCH+"/data.json"
+];
+function fetchJSON(url){
+  return fetch(url,{cache:"no-store",mode:"cors",headers:{"Accept":"application/json"}}).then(r=>{
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return r.json();
+  });
+}
+function load(){
+  const local=()=>fetchJSON("./data.json").then(d=>{DATA=d;render();}).catch(err=>{
+    document.getElementById("content").innerHTML='<div class="loading">数据加载失败：'+err+'<br>请通过分享链接（线上站点）访问，或确认 data.json 与 index.html 在同一目录。</div>';
+  });
+  let i=0;
+  function next(){
+    if(i>=REMOTE_SOURCES.length){ console.warn("全部远程源失败，回退本地数据"); local(); return; }
+    const src=REMOTE_SOURCES[i++];
+    const url=src+(src.indexOf("?")>=0?"&":"?")+"_="+Date.now();
+    fetchJSON(url).then(d=>{
+      if(!d||!d.categories||!Array.isArray(d.daily)) throw new Error("远程数据结构不完整");
+      DATA=d;render();
+    }).catch(err=>{ console.warn("远程源失败("+src+"):",err); next(); });
+  }
+  next();
+}
+load();
+</script>
+</body>
+</html>
